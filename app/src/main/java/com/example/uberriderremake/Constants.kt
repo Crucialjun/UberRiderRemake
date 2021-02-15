@@ -8,5 +8,6 @@ const val NOTI_TITLE = "title"
 const val NOTI_BODY = "body"
 const val LIMIT_RANGE = 10.0
 const val DRIVER_LOCATION_REFERENCE = "DriversLocation"
+const val DRIVER_INFO_REFERENCE = "DriverInfo"
 
 

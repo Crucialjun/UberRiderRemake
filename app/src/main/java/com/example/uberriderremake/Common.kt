@@ -9,14 +9,16 @@ import android.content.Intent
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import androidx.core.app.NotificationCompat
+import com.google.android.gms.maps.model.Marker
 
 object Common {
     fun buildWelcomeMessage(): CharSequence? {
         return "Welcome ${currentRider?.firstName} ${currentRider?.lastName} "
     }
 
-    val driversFound: HashSet<DriverGeoModel>()
+    val driversFound: HashSet<DriverGeoModel> = HashSet()
     var currentRider : RiderInfoModel? = null
+    val markerList : HashMap<String,Marker> = HashMap()
 
     fun showNotification(
         context : Context,
@@ -70,5 +72,9 @@ object Common {
 
         }
 
+    }
+
+    fun buildName(firstName: String, lastName: String): String? {
+        return "$firstName $lastName"
     }
 }
