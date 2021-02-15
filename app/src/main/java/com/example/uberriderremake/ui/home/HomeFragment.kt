@@ -3,18 +3,24 @@ package com.example.uberriderremake.ui.home
 import android.Manifest
 import android.content.pm.PackageManager
 import android.content.res.Resources
+import android.location.Address
+import android.location.Geocoder
+import android.location.Location
 import android.os.Bundle
 import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.RelativeLayout
 import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
+import com.example.uberriderremake.*
 import com.example.uberriderremake.R
+import com.firebase.geofire.GeoFire
+import com.firebase.geofire.GeoLocation
+import com.firebase.geofire.GeoQueryEventListener
 import com.google.android.gms.location.*
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -22,14 +28,19 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MapStyleOptions
-import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.material.snackbar.Snackbar
+import com.google.firebase.database.ChildEventListener
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.FirebaseDatabase
 import com.karumi.dexter.Dexter
 import com.karumi.dexter.PermissionToken
 import com.karumi.dexter.listener.PermissionDeniedResponse
 import com.karumi.dexter.listener.PermissionGrantedResponse
 import com.karumi.dexter.listener.PermissionRequest
 import com.karumi.dexter.listener.single.PermissionListener
+import java.io.IOException
+import java.util.*
 
 class HomeFragment : Fragment(), OnMapReadyCallback {
 
@@ -42,6 +53,18 @@ class HomeFragment : Fragment(), OnMapReadyCallback {
     lateinit var locationRequest: LocationRequest
     lateinit var locationCallback: LocationCallback
     lateinit var fusedLocationProviderClient: FusedLocationProviderClient
+    lateinit var previousLocation : Location
+    lateinit var currentLocation: Location
+
+    var distance = 1.0
+    var isFirstTime = true
+
+    //listener
+    lateinit var FireBaseDriverInfoListener : FirebaseDriverInfoListener
+    lateinit var FireBaseFailedListener : FirebaseFailedListener
+
+    var cityName = ""
+
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -56,11 +79,13 @@ class HomeFragment : Fragment(), OnMapReadyCallback {
 
         })
 
-        init()
 
-        val mapFragment = childFragmentManager
+
+        mapFragment = childFragmentManager
             .findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
+
+        init()
         return root
     }
 
@@ -80,6 +105,26 @@ class HomeFragment : Fragment(), OnMapReadyCallback {
                     ,locationResult.lastLocation.longitude)
 
                 mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(newPos,18f))
+
+                //loadAll drivers
+                val geoCoder = Geocoder(requireContext(), Locale.getDefault())
+                val addressList : List<Address>
+
+                if(isFirstTime){
+                    previousLocation = locationResult.lastLocation
+                    currentLocation = locationResult.lastLocation
+
+                    isFirstTime = false
+                }else{
+                    previousLocation = currentLocation
+                    currentLocation = locationResult.lastLocation
+                }
+
+                if(previousLocation.distanceTo(currentLocation) / 1000 <= LIMIT_RANGE){
+                    loadAvailableDrivers()
+                }
+
+
             }
         }
 
@@ -99,6 +144,114 @@ class HomeFragment : Fragment(), OnMapReadyCallback {
         fusedLocationProviderClient.requestLocationUpdates(locationRequest,locationCallback, Looper.myLooper())
 
 
+    }
+
+    private fun loadAvailableDrivers() {
+        if (ActivityCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return
+        }
+        fusedLocationProviderClient.lastLocation.addOnFailureListener{
+            Snackbar.make(requireView()
+                ,"${it.message}"
+                ,Snackbar.LENGTH_LONG).show()
+        }.addOnSuccessListener {
+
+            val geocoder = Geocoder(requireContext(), Locale.getDefault())
+
+            var addressList : List <Address>
+
+            try {
+                addressList = geocoder.getFromLocation(it.latitude,it.longitude,1)
+                cityName = addressList[0].locality
+
+                val driverLocationRef = FirebaseDatabase.getInstance().getReference(
+                    DRIVER_LOCATION_REFERENCE)
+
+                val geoFire = GeoFire(driverLocationRef)
+                val geoQuery = geoFire.queryAtLocation(GeoLocation(it.latitude,it.longitude),distance)
+                geoQuery.removeAllListeners()
+
+                geoQuery.addGeoQueryEventListener(object : GeoQueryEventListener{
+                    override fun onKeyEntered(key: String?, location: GeoLocation?) {
+                        Common.driversFound.add(DriverGeoModel(key!!,location!!))
+                    }
+
+                    override fun onKeyExited(key: String?) {
+                        TODO("Not yet implemented")
+                    }
+
+                    override fun onKeyMoved(key: String?, location: GeoLocation?) {
+                        TODO("Not yet implemented")
+                    }
+
+                    override fun onGeoQueryReady() {
+                        if(distance <= LIMIT_RANGE){
+                            distance++
+                            loadAvailableDrivers()
+                        }else{
+                            distance = 0.0
+                            addDriverMarker()
+                        }
+                    }
+
+                    override fun onGeoQueryError(error: DatabaseError?) {
+                        Snackbar.make(requireView()
+                            ,"$error"
+                            ,Snackbar.LENGTH_LONG).show()
+                    }
+
+                })
+
+                driverLocationRef.addChildEventListener(object : ChildEventListener{
+                    override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
+                        TODO("Not yet implemented")
+                    }
+
+                    override fun onChildChanged(
+                        snapshot: DataSnapshot,
+                        previousChildName: String?
+                    ) {
+                        TODO("Not yet implemented")
+                    }
+
+                    override fun onChildRemoved(snapshot: DataSnapshot) {
+                        TODO("Not yet implemented")
+                    }
+
+                    override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {
+                        TODO("Not yet implemented")
+                    }
+
+                    override fun onCancelled(error: DatabaseError) {
+                        TODO("Not yet implemented")
+                    }
+
+                })
+            }catch (e : IOException){
+                Snackbar.make(requireView()
+                    ,"${e.message}"
+                    ,Snackbar.LENGTH_LONG).show()
+            }
+
+        }
+    }
+
+    private fun addDriverMarker() {
+        TODO("Not yet implemented")
     }
 
     override fun onMapReady(googleMap: GoogleMap?) {

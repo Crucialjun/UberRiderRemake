@@ -15,6 +15,7 @@ object Common {
         return "Welcome ${currentRider?.firstName} ${currentRider?.lastName} "
     }
 
+    val driversFound: HashSet<DriverGeoModel>()
     var currentRider : RiderInfoModel? = null
 
     fun showNotification(
