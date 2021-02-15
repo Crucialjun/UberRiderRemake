@@ -1,0 +1,24 @@
+<resources>
+    <!--
+    TODO: Before you run your application, you need a Google Maps API key.
+
+    To get one, follow this link, follow the directions and press "Create" at the end:
+
+    https://console.developers.google.com/flows/enableapi?apiid=maps_android_backend&keyType=CLIENT_SIDE_ANDROID&r=10:B2:35:A0:A9:31:7E:48:F3:F4:30:64:2B:14:28:43:94:9C:63:59%3Bcom.example.uberriderremake
+
+    You can also add your credentials to an existing key, using these values:
+
+    Package name:
+    com.example.uberriderremake
+
+    SHA-1 certificate fingerprint:
+    10:B2:35:A0:A9:31:7E:48:F3:F4:30:64:2B:14:28:43:94:9C:63:59
+
+    Alternatively, follow the directions here:
+    https://developers.google.com/maps/documentation/android/start#get-key
+
+    Once you have your key (it starts with "AIza"), replace the "google_maps_key"
+    string in this file.
+    -->
+    <string name="google_maps_key" templateMergeStrategy="preserve" translatable="false">AIzaSyBE3lsNeP5LmJqpDlrz0dyKuJ12x5vh5aw</string>
+</resources>
