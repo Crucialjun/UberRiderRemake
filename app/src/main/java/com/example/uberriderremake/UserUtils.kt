@@ -22,19 +22,20 @@ object UserUtils {
             }
     }
 
-//    fun updateToken(context: Context, token: String) {
-//        val newToken = TokenModel(token)
-//
-//        FirebaseDatabase
-//            .getInstance()
-//            .getReference(TOKEN_REFERENCE)
-//            .child(FirebaseAuth.getInstance().currentUser!!.uid)
-//            .setValue(newToken)
-//            .addOnFailureListener{
-//                Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
-//            }
-//            .addOnSuccessListener {
-//
-//            }
-//    }
+    fun updateToken(context: Context, token: String) {
+        val newToken = TokenModel(token)
+
+
+        FirebaseDatabase
+            .getInstance()
+            .getReference(TOKEN_REFERENCE)
+            .child(FirebaseAuth.getInstance().currentUser!!.uid)
+            .setValue(newToken)
+            .addOnFailureListener{
+                Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
+            }
+            .addOnSuccessListener {
+
+            }
+    }
 }
