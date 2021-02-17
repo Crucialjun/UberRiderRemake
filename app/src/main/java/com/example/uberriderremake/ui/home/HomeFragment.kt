@@ -367,9 +367,11 @@ class HomeFragment : Fragment(), OnMapReadyCallback, FirebaseDriverInfoListener,
                                 requireView(), "${it.message}", Snackbar.LENGTH_LONG
                             ).show()
 
-                        }.addOnSuccessListener {
-                            val userLatlng = LatLng(it.latitude, it.longitude)
+                        }.addOnSuccessListener { location ->
+                            if(location != null) {
+                                val userLatlng = LatLng(location.latitude, location.longitude)
                             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(userLatlng, 18f))
+                            }
                         }
 
                         true
@@ -425,7 +427,7 @@ class HomeFragment : Fragment(), OnMapReadyCallback, FirebaseDriverInfoListener,
 
     override fun onDriverInfoLoadSuccess(driverGeoModel: DriverGeoModel) {
         if(!Common.markerList.containsKey(driverGeoModel.key))
-            Common.markerList[driverGeoModel!!.key!!] =
+            Common.markerList[driverGeoModel.key] =
                 mMap.addMarker(MarkerOptions()
                     .position(LatLng(driverGeoModel.geoLocation!!.latitude,driverGeoModel.geoLocation!!.longitude))
                     .flat(true)
