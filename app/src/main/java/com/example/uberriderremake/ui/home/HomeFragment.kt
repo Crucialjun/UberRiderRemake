@@ -60,6 +60,7 @@ class HomeFragment : Fragment(), OnMapReadyCallback, FirebaseDriverInfoListener,
     lateinit var fusedLocationProviderClient: FusedLocationProviderClient
     lateinit var previousLocation: Location
     lateinit var currentLocation: Location
+    lateinit var geoLocation: GeoLocation
 
     var distance = 1.0
     var isFirstTime = true
@@ -232,12 +233,15 @@ class HomeFragment : Fragment(), OnMapReadyCallback, FirebaseDriverInfoListener,
 
                 driverLocationRef.addChildEventListener(object : ChildEventListener {
                     override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
-                            val geoQueryModel = snapshot.getValue(GeoQueryModel::class.java)
-                            val geoLocation = GeoLocation(
+                        for(child in snapshot.children){
+                            val geoQueryModel = child.getValue(GeoQueryModel::class.java)
+                            geoLocation = GeoLocation(
                                 geoQueryModel!!.l!![0],
                                 geoQueryModel.l!![1]
                             )
-                            val driverGeoModel = DriverGeoModel(snapshot.key.toString(), geoLocation)
+                        }
+                            val driverGeoModel =
+                                DriverGeoModel(snapshot.key.toString(), geoLocation)
                             val newDriverLocation = Location("")
                             newDriverLocation.latitude = geoLocation.latitude
                             newDriverLocation.longitude = geoLocation.longitude
@@ -245,6 +249,7 @@ class HomeFragment : Fragment(), OnMapReadyCallback, FirebaseDriverInfoListener,
                             val newDistance = it.distanceTo(newDriverLocation) / 1000
                             if (newDistance <= LIMIT_RANGE)
                                 findDriverByKey(driverGeoModel)
+
 
                     }
 
@@ -458,6 +463,6 @@ class HomeFragment : Fragment(), OnMapReadyCallback, FirebaseDriverInfoListener,
     }
 
     override fun onFirebaseFailed(message: String) {
-        TODO("Not yet implemented")
+
     }
 }
