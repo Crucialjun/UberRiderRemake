@@ -1,11 +1,9 @@
 package com.example.uberriderremake
 
-data class DriverInfoModel(
-    var firstName : String = "",
-    var lastName : String = "",
-    var phoneNumber : String = "",
-    var rating : Double = 0.0,
-    var avatar : String? = ""
-    ) {
-
+class DriverInfoModel{
+    var firstName : String? = null
+    var lastName : String? = null
+    var phoneNumber : String? = null
+    var rating : Double? = null
+    var avatar : String? = null
 }
